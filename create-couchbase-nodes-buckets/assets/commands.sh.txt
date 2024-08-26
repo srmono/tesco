@@ -1,0 +1,194 @@
+
+####################################################
+#######################################Adding Nodes to a Couchbase Cluster
+####################################################
+
+## Downloading and installing Couchbase server
+wget https://packages.couchbase.com/releases/6.5.0/couchbase-server-enterprise_6.5.0-ubuntu18.04_amd64.deb
+
+sudo dpkg -i couchbase-server-enterprise_6.5.0-ubuntu18.04_amd64.deb
+
+## Load a sample bucket
+## Add a new node from the Web UI
+
+## Query the bucket data
+SELECT *
+FROM `gamesim-sample`
+LIMIT 1;
+
+SELECT jsonType, COUNT(*)
+FROM `gamesim-sample`
+GROUP BY jsonType;
+
+## Delete some of the documents 
+DELETE
+FROM `gamesim-sample`
+WHERE jsonType = "player";
+
+
+####
+#### Adding a node and rebalancing with the Couchbase CLI
+####
+
+cd /opt/couchbase/bin/
+
+./couchbase-cli server-add -c 52.172.8.90:8091/ \ (host id of the 1st cluster)
+--username Administrator \
+--password bvsrao \
+--server-add 10.0.0.150 \  (private id of the port4)
+--server-add-username clouduser \
+--server-add-password bvsrao@123 \
+--services data
+
+
+## rebalance:
+./couchbase-cli rebalance -c 52.172.8.90:8091 \ (host id of the 1st cluster)
+--username Administrator \
+--password bvsrao
+
+
+
+####
+#### Adding a node and rebalancing with the Couchbase REST API
+####
+
+
+curl -u Administrator:bvsrao \
+52.172.8.90:8091/controller/addNode \
+-d 'hostname=10.0.0.151&user=Administrator&password=bvsrao' \
+-d 'services=kv'
+
+rebalance
+curl -u Administrator:bvsrao \
+52.172.8.90:8091/controller/rebalance \
+ -d 'knownNodes=ns_1@10.0.0.148,ns_1@10.0.0.149,ns_1@10.0.0.150,ns_1@10.0.0.151' (private id of cluster1 and cluster5)
+
+
+#### Retrieving and viewing Cluster Information
+#Retrieving Cluster Information 
+curl -u Administrator:bvsrao http://52.172.8.90:8091/pools
+
+#viewing Cluster Information
+curl -u Administrator:bvsrao http://52.172.8.90:8091/pools/default
+ 
+
+
+####################################################
+####################################### Viewing Node Info 
+####################################################
+
+
+#### USING CLI:
+
+./couchbase-cli server-list -c 52.172.8.90:8091 \
+--username Administrator --password bvsrao
+
+#### USING REST API:
+
+sudo snap install jq -> install this if it is asking for a installation
+
+curl  -u Administrator:bvsrao \
+http://52.172.7.182:8091/pools/default | jq '.' | grep hostname
+
+
+####################################################
+####################################### Deleting Nodes from a Cluster
+####################################################
+
+
+./cocuhbase-cli rebalance -c 52.172.8.90:8091 \
+--username Administrator \
+--password bvsrao \
+--server-remove 10.0.0.150:8091
+
+curl -u Administrator:bvsrao \
+http://52.172.8.90:8091/controller/Rebalance \
+-d 'ejectNodes=ns_1%4010.0.0.149'
+-d 'knownNodes=ns_1%4010.0.0.148%2Cn_1%4010.0.0.149'
+
+
+
+####################################################
+####################################### Creating Buckets
+####################################################
+
+cd /Applications/Couchbase\ Server.app/Contents/Resources/couchbase-core/bin/
+
+./couchbase-cli bucket-create -c 52.172.8.90:8091 \
+--username Administrator \
+--password bvsrao \
+--bucket sample-bucket \
+--bucket-type couchbase \
+--bucket-ramsize 200
+
+curl -X POST -u Administrator:bvsrao \
+ http://52.172.8.90:8091/pools/default/buckets \
+-d name=my-second-bucket -d ramQuotaMB=250
+
+
+####################################################
+####################################### Editing Bucket Settings
+####################################################
+
+#### to change the memory quota
+./couchbase-cli bucket-edit -c 52.172.8.90 \
+--username Administrator --password bvsrao \
+--bucket sample-bucket --bucket-ramsize 300
+
+#### bucket max-time-to-live
+./couchbase-cli bucket-edit -c 52.172.8.90 \
+--username Administrator --password bvsrao \
+--bucket sample-bucket --max-ttl 60
+
+#### memory quota 
+curl -X POST -u Administrator:bvsrao \
+-d ramQuotaMB=100 \
+http://52.172.8.90:8091/pools/default/buckets/sample-bucket
+
+#### bucket max-time-to-live 
+curl -X POST -u Administrator:bvsrao \
+http://52.172.8.90:8091/pools/default/buckets/sample-bucket \
+-d maxTTL=60 
+
+####################################################
+####################################### Flushing a bucket
+####################################################
+
+## Flush a Bucket using REST API:
+##  click on my-bucket -> show it have many documents -> click on edit option 
+## -> Left-click on the Show advanced bucket settings tab.
+## -> click on the flush enable checkbox ->
+
+## -> go to terminal 
+curl -X POST -u Administrator:bvsrao \
+http://52.172.8.90:8091/pools/default/buckets/my-bucket/controller/doFlush
+
+
+####################################################
+####################################### Deleting a Bucket
+####################################################
+
+
+## Delete a Bucket using CLI:
+## -> go to terminal 
+
+cd /Applications/Couchbase\ Server.app/Contents/Resources/couchbase-core/bin/
+
+./couchbase-cli bucket-delete -c 52.172.8.90:8091 \
+--username Administrator \
+--password bvsrao \
+--bucket student-sample
+
+## Delete a Bucket using UI: REST API
+## -> go to terminal
+curl -X DELETE -u Administrator:bvsrao \
+http://52.172.8.90:8091//pools/default/buckets/my-bucket
+
+
+
+
+
+
+
+
+

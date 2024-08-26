@@ -1,0 +1,195 @@
+####################################
+############ Setting up an XDCR Connection
+####################################
+
+## Ensure the student-schools bucket has been flushed
+
+## From the localCluster, create an XDCR config
+##		-- add a remote cluster (point to remoteCluster)
+##		-- create an outgoing replication
+
+
+## Add data to student-schools
+INSERT INTO `student-schools` (KEY, VALUE)
+VALUES ("1", {
+              "id": 1,
+              "type" : "student",
+              "firstName": "Lori",
+              "lastName": "Gross",
+              "gender": "Female",
+              "emailId" : "lori@hotmail.com",
+              "degree" : "BTech",
+              "gpa" : 2.8,
+              "recruited" : false,
+              "schoolName" : "Curtin University"  
+            }
+       ),
+VALUES ("2", {
+              "id": 2,
+              "type" : "student",
+              "firstName": "Edwin",
+              "lastName": "Brown",
+              "gender": "Male",
+              "emailId" : "edwin@hotmail.com",
+              "degree" : "MS",
+              "gpa" : 3.9,
+              "recruited" : true,
+              "company" : "itgurukul",
+              "schoolName" : "Harvard University"
+            }
+       ),
+
+VALUES ("3", {
+              "id": 3,
+              "type" : "student",
+              "firstName": "Jon",
+              "lastName": "Scott",
+              "gender": "Male",
+              "emailId" : "jones@hotmail.com",
+              "degree" : "MS",
+              "gpa" : 3.5,
+              "recruited" : false,
+              "schoolName" : "Curtin University"
+            }
+       ),
+
+VALUES ("4", {
+              "id": 4,
+              "type" : "student",
+              "firstName": "Aubrey",
+              "lastName": "Taylor",
+              "gender": "Female",
+              "emailId" : "aubrey@hotmail.com",
+              "degree" : "BE",
+              "gpa" : 3.8,
+              "recruited" : true,
+              "company" : "itgurukul",
+              "schoolName" : "Stanford University"
+            }
+       ),
+
+VALUES ("5", {
+              "id": 5,
+              "type" : "student",
+              "firstName": "Ronan",
+              "lastName": "Martin",
+              "gender": "Male",
+              "emailId" : "ronan@hotmail.com",
+              "degree" : "BE",
+              "gpa" : 2.9,
+              "recruited" : true,
+              "company" : "Facebook",
+              "schoolName" : "Royal Melbourne Institute of Technology"
+            }
+       )
+RETURNING meta().id, firstName, lastName, schoolName;
+
+
+## Confirm this has been replicated in the remoteCluster
+
+## Perform an update in the localCluster and confirm it's propagated to the remote
+UPDATE `student-schools`
+SET gpa = 3.1
+WHERE id = 5;
+
+## Add more data to the local and check the remote to see if it receives them
+
+INSERT INTO `student-schools` (KEY, VALUE)
+VALUES ("6", {
+			  "id": 6,
+			  "type" : "student",
+			  "firstName": "Angela",
+			  "lastName": "Perez",
+			  "gender": "Female",
+			  "emailId" : "angela@hotmail.com",
+			  "degree" : "MS",
+			  "gpa" : 2.5,
+			  "recruited" : true,
+			  "company" : "Google",
+			  "schoolName" : "Stanford University"
+			}
+	   ),
+VALUES ("7", {
+			  "id": 7,
+			  "type" : "student",
+			  "firstName": "Kevin",
+			  "lastName": "Scott",
+			  "gender": "Male",
+			  "emailId" : "kevin@yahoo.com",
+			  "degree" : "MBA",
+			  "gpa" : 2,
+			  "recruited" : true,
+			  "company" : "Facebook",
+			  "schoolName" : "Technische University Berlin" 
+			}
+	   ),
+VALUES ("8", {
+			  "id": 8,
+			  "type" : "student",
+			  "firstName": "Leona",
+			  "lastName": "Griffin",
+			  "gender": "Female",
+			  "emailId" : "leona@hotmail.com",
+			  "degree" : "BSc",
+			  "gpa" : 3,
+			  "recruited" : true,
+			  "company" : "Amazon",
+			  "schoolName" : "Technische University Berlin"
+			}
+	   )
+RETURNING meta().id, firstName, lastName, schoolName;
+
+
+## Check that this delete done at localCluster gets pushed to the remote 
+DELETE 
+FROM `student-schools`
+WHERE id IN [2, 4];
+
+
+## Add 2 new nodes to the cluster
+
+## Insert a new document and confirm that XDCR still functions as expected
+
+INSERT INTO `student-schools` (KEY, VALUE)
+VALUES ("9", {
+			  "id": 9,
+			  "type" : "student",
+			  "firstName": "Russ",
+			  "lastName": "Newman",
+			  "gender": "Male",
+			  "emailId" : "russ@hotmail.com",
+			  "degree" : "BS",
+			  "gpa" : 3.5,
+			  "recruited" : true,
+			  "company" : "Uber",
+			  "schoolName" : "Lehigh University"
+			}
+	   );
+
+## Take down 2 out of the 3 nodes so that data is not fully recoverable
+
+## Running this query will fail
+SELECT *
+FROM `student-schools`;
+
+
+## Provision 2 new VMs
+## Add two new nodes to the cluster (from the new VMs) to go back to the previous capacity
+## DO NOT carry out a rebalance - that will remove the data about missing vBuckets
+
+## Run this command using cbrecovery to load data from the XDCR replica back to the source
+
+/opt/couchbase/bin/cbrecovery \
+http://remotemachine:8091 \
+http://localmachine:8091 \
+-b student-schools-remote \
+-B student-schools \
+-u admin -p bvsrao \
+-U admin -P bvsrao
+
+## Rebalance and remove the failed nodes from the cluster
+## Confirm query executions function as normal
+SELECT *
+FROM `student-schools`;
+
+

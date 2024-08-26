@@ -1,0 +1,83 @@
+####################################
+############ Failovers and Cluster Rebalancing
+####################################
+
+
+## Head to Settings in the UI and disable auto-failover
+
+## Go to the Buckets section and set the #replicas for the beer-sample bucket to 2
+## Head to the Servers section and rebalance the nodes
+
+
+## Simulate node failure (hard failover)
+
+## After the rebalance concludes, shut down one of the hosts from the cloud service
+## . From the Servers section, the node will appear off (and the Failover button will appear)
+## . Try running the query again (it will likely fail)
+## . From the Server section, hit Failover for the failed node
+## . Re-run the query (it should run now)
+
+## Re-add a node using the REST API
+curl -u admin:bvsrao \
+http://host-01:8091/controller/addNode \
+-d hostname=10.0.0.7 \
+-d user=admin \
+-d password=bvsrao \
+-d services=kv,index,n1ql,fts 
+
+## Start the node from the Cloud console
+## From the Servers section in the UI, the node will soon appear responsive
+## Do an Add Back: Delta Recovery and do a rebalance
+## While the rebalance is taking place, run the query (it should run)
+
+
+## . Go to Settings and enable the Auto-failover option 
+##		- set it for 2 events
+##		- save changes
+## . Again, shut down one of the hosts and check the Servers section (the node will appear off)
+## . Wait for the failover to occur automatically
+## . Re-run the query (it should run)
+## . After the auto-failover, revive the downed host and observe that the Servers section shows the node is available
+## . Opt for a full recovery and then hit Rebalance
+## . Re-run the query (it should run)
+
+## Soft / graceful failover
+## Simulate taking down a node for maintenance
+
+## . From the Servers section, select a node and click Failover
+##		- Choose the "Graceful" failover option
+##		- Rebalance the nodes and run the query while it's happening
+##		- Re-run query after the rebalance - should run quicker
+
+##	Re-add the node with a Delta Recovery and rebalance
+
+
+
+
+
+####################################
+############ Configuring Email Alerts
+####################################
+
+## Email alerts
+
+## . Allow access to applications on your email server
+## . Navigate to Settings --> Email Alerts and enter these details:
+##		a. Email server: smtp.gmail.com
+##		b. Port: 587 (for TLS)
+##		c. username: cloud.user@bvsrao.com
+## 		d. password: 
+##		e. Check box to require TLS
+##		f. Sender is cloud.user@bvsrao.com. Recipient is alice@bvsrao.com
+##		g. Send a test email (allow access to less secure 3rd-party apps)
+##		h. Leave all boxes checked for when to send out alerts
+##		i. Save changes
+
+## . Bring down one of the nodes by stopping it
+## . The auto failover should take place and an email should be sent to the recipient
+
+##
+##
+##
+
+

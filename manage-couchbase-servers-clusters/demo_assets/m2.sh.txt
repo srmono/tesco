@@ -1,0 +1,205 @@
+############ Manage Couchbase Servers and Clusters
+
+
+####################################
+############ Create a Multi-node Cluster
+####################################
+
+##  Create a VM on Microsft Azure (or some cloud service)
+##		a. Give it a name host-01
+##		b. Select the newest Ubuntu version for which a Couchbase installer is available
+##		c. Set username (clouduser) and pwd 
+##  SSH into the machine from your shell
+##  Download Couchbase server for your Ubuntu setup using WGET:
+
+ssh clouduser@52.163.248.229
+
+wget \
+https://packages.couchbase.com/releases/6.5.0/couchbase-server-enterprise_6.5.0-ubuntu18.04_amd64.deb
+
+##  Install Couchbase server
+
+sudo dpkg -i couchbase-server-enterprise_6.5.0-ubuntu18.04_amd64.deb
+
+##  Access the Web UI from the browser: http://52.163.248.229:8091/
+##  Set up the Couchbase node 
+##		a. Change the memory allocation for the Data service to 1024
+##		b. Disable the Analytics service
+##		c. Toggle between the options of Standard Global Secondary and Memory Optimized
+##  Load the beer-sample travel-sample buckets
+##  Run a query from the query interface:
+
+SELECT ap.faa AS departure,
+       rt.destinationairport AS destination
+FROM `travel-sample` ap
+JOIN `travel-sample` rt 
+ON ap.faa = rt.sourceairport
+WHERE ap.type = "airport";
+
+## Head to Servers and then to Groups
+## Rename the current group to FirstGroup and create new ones called SecondGroup and ThirdGroup
+
+
+## Provision another 3 VMs
+##		a. Call them host-02, host-03, host-04
+## 		b. All settings, including Virtual network/subnet should be the same as previous VM
+##  Connect to them using SSH
+## Download and install Couchbase server:
+
+## From the Web UI, go to Servers and click "ADD SERVER" 
+##		a. Give the internal IP of host-02 as the hostname
+##		b. Supply the host admin credentials for the new server node
+##		c. Add it to the FirstGroup
+## Perform a Rebalance to distribute the vBuckets across the nodes
+## Run the query from the query interface:
+
+SELECT ap.faa AS departure,
+       rt.destinationairport AS destination
+FROM `travel-sample` ap
+JOIN `travel-sample` rt 
+ON ap.faa = rt.sourceairport
+WHERE ap.type = "airport";
+
+## Add host-03 and host-04 to SecondGroup and ThirdGroup
+## Move host-02 to SecondGroup
+## Rebalance
+
+
+
+####################################
+############ Test Cluster Performance with cbworkloadgen
+####################################
+
+## Head to Buckets --> Add Bucket
+## Create a bucket called workload-bucket
+## Override the default auto-compaction settings (set fragmentation level to 100)
+## A fragmentation level of 100 effectively disables auto-compaction
+## Enable flushing for the bucket
+
+## Create a primary index for the bucket
+# Click on "Couchbase Web Console > Query" 
+
+CREATE PRIMARY INDEX ON `workload-bucket`;
+
+
+## Head to the shell of host-01 and run this against host-02
+
+/opt/couchbase/bin/cbworkloadgen \
+-n host-02:8091 \
+-u admin -p bvsrao \
+-b workload-bucket 
+
+## On the UI, head to Buckets and you'll observe workload-bucket now has 10K items
+## Click on documents and view the documents inserted
+## Head back to the bucket and flush
+
+## Add a few more options to the call
+## 		max-items sets the number of items to insert
+##		prefix sets the prefix of the document key (default is pymc)
+##		the json flag ensures it's a json document which is inserted
+
+/opt/couchbase/bin/cbworkloadgen \
+-n host-02:8091 \
+-u admin -p bvsrao \
+-b workload-bucket \
+--max-items 25000 \
+--prefix load_ \
+--json 
+
+## Head to the UI and check the buckets page for the #items and then the Documents
+## Head to Query and run this query as a baseline and note the execution time
+
+SELECT ap.faa AS departure,
+       rt.destinationairport AS destination
+FROM `travel-sample` ap
+JOIN `travel-sample` rt 
+ON ap.faa = rt.sourceairport
+WHERE ap.type = "airport";
+
+## Back to the shell, run this
+##		ratio-sets determines the % of write operations vs. reads (default == 0.95)
+##		loop sets it to loop forever until explicitly stopped
+
+/opt/couchbase/bin/cbworkloadgen \
+-n host-02:8091 \
+-u admin -p bvsrao \
+-b workload-bucket \
+--prefix load_ \
+--json \
+--ratio-sets 0.6 \
+--loop
+
+## Head over to the UI and to Query and run this
+## Execution should take much longer
+
+SELECT ap.faa AS departure,
+       rt.destinationairport AS destination
+FROM `travel-sample` ap
+JOIN `travel-sample` rt 
+ON ap.faa = rt.sourceairport
+WHERE ap.type = "airport";
+
+## Back to the shell, hit Ctrl+C to interrupt cbworlkloadgen
+
+
+
+
+####################################
+############ Enable Encryption in a Couchbase Cluster
+####################################
+
+
+/opt/couchbase/bin/couchbase-cli setting-autofailover \
+-c http://127.0.0.1:8091 \
+-u admin \
+-p bvsrao \
+--enable-auto-failover 0
+
+/opt/couchbase/bin/couchbase-cli node-to-node-encryption \
+-c http://127.0.0.1:8091 \
+-u admin \
+-p bvsrao \
+--enable
+
+/opt/couchbase/bin/couchbase-cli setting-autofailover \
+-c http://127.0.0.1:8091 \
+-u admin \
+-p bvsrao \
+--enable-auto-failover 1 \
+--auto-failover-timeout 60 
+
+/opt/couchbase/bin/couchbase-cli node-to-node-encryption \
+-c http://127.0.0.1:8091 \
+-u admin \
+-p bvsrao \
+--get
+
+## Disabling will fail since auto-failover is enabled
+/opt/couchbase/bin/couchbase-cli node-to-node-encryption \
+-c http://127.0.0.1:8091 \
+-u admin \
+-p bvsrao \
+--disable
+
+/opt/couchbase/bin/couchbase-cli setting-autofailover \
+-c http://127.0.0.1:8091 \
+-u admin \
+-p bvsrao \
+--enable-auto-failover 0
+
+/opt/couchbase/bin/couchbase-cli node-to-node-encryption \
+-c http://127.0.0.1:8091 \
+-u admin \
+-p bvsrao \
+--disable
+
+/opt/couchbase/bin/couchbase-cli node-to-node-encryption \
+-c http://127.0.0.1:8091 \
+-u admin \
+-p bvsrao \
+--get
+
+
+
+
+

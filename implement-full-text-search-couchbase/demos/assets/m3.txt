@@ -1,0 +1,30 @@
+Query String searches:
+
+queen
+lodge
+village
+
+luxury
+prince
+view
+pool
+
+"swimming pool"
+"breathtaking views"
+swimming pool
+
+church
+content : church
+name: church
+
+prince -queen
++prince -queen
+description : inn -description : suites
+name: church -content: church
+
+name : cafe content : cheese
+name : cafe content : cheese^2
+
+id: > 65400
+id: < 500
+id: <= 500

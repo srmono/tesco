@@ -1,0 +1,237 @@
+# Introduction to TOML config file format:
+#   https://npf.io/2014/08/intro-to-toml/
+
+# The work of replicating a Couchbase bucket may be distributed between
+# several connector worker processes, known collectively as a "group".
+#
+# The connector name uniquely identifies a group of connector workers.
+# All workers in the group must use the same name. The group name
+# is required even if there is only one worker.
+#
+# TIP: Changing the name invalidates the replication status checkpoint.
+# To preserve the checkpoint, run the `cbes-checkpoint-backup` command
+# before renaming, and `cbes-checkpoint-restore` afterwards.
+[group]
+  name = 'example-group'
+
+# The simplest way to deploy the connector is "static" mode. In this mode,
+# each worker process is independent of the others, and must be manually
+# configured to know which partitions it is responsible for.
+[group.static]
+  # Each member in a static group must have a unique member number.
+  memberNumber = 1 # A value from 1 to 'totalMembers', inclusive.
+
+  # The total number of workers in the static group.
+  #
+  # TIP: To safely add or remove workers from a static group, first stop all
+  # running workers, then reconfigure them with the new 'totalMembers' value,
+  # and finally start all the workers again.
+  totalMembers = 1
+
+# Performance metrics may be written to a log file and/or exposed via HTTP.
+[metrics]
+  httpPort = 31415 # Positive = fixed, 0 = ephemeral, -1 = disable HTTP server
+  logInterval = '1m' # Set to '0m' to disable metrics logging
+
+# Required if secure connections are enabled (SSL/TLS).
+[truststore]
+  # Use the Java keytool command to create this file and import the root
+  # certificate from the Security section of the Couchbase admin console
+  # and/or the CA certificate used by Elasticsearch.
+  path = 'path/to/truststore'
+  pathToPassword = 'secrets/truststore-password.toml'
+
+[couchbase]
+  hosts = ['localhost']
+  network = 'auto'
+  bucket = 'academic-data'
+
+  # By default the connector stores replication checkpoint documents
+  # in the source bucket. If you'd rather store those documents in a
+  # separate existing bucket, put that bucket's name here.
+  metadataBucket = ''
+
+  # If you want to store replication checkpoint documents in a specific
+  # collection, name that collection here (qualified by scope, like
+  # 'myScope.cbesCheckpoints'). Otherwise, checkpoints will be stored
+  # in the bucket's default collection. The collection must already exist.
+  metadataCollection=''
+
+  # At a minimum, the Couchbase user must have the "Data DCP Reader"
+  # role for the source bucket, and "Data Reader" & "Data Writer"
+  # roles for the bucket where replication checkpoints are stored.
+  username = 'admin'
+
+  # Path to a separate TOML file with a single 'password' key.
+  # The base for a relative path is the connector installation directory.
+  pathToPassword = 'secrets/couchbase-password.toml'
+
+  # Optionally use SSL/TLS to encrypt the connection between Couchbase and
+  # the connector. Requires Couchbase Enterprise Edition, and requires the
+  # [truststore] section to be configured.
+  secureConnection = false
+
+  # By default the connector examines every document in the bucket.
+  #
+  # Set the 'scope' property if you want to limit the replication to
+  # all collections within a single scope. The value is the name of the
+  # scope to replicate from.
+  # For example:
+  #   scope = 'myScope'
+  #
+  # Set the 'collections' property if you want to limit the replication to
+  # a subset of the collections in a scope, or collections in different scopes.
+  # The value is a list of qualified collections names (scope.collection).
+  # For example:
+  #   collections = ['myScope.widgets','myScope.invoices']
+  #
+  # NOTE: The 'scope' and 'collections' properties are mutually exlcusive.
+  # You can set one OR the other, but not both.
+  scope = ''
+  collections = []
+
+# Options for the Couchbase Database Change Protocol (DCP).
+[couchbase.dcp]
+  compression = true
+  flowControlBuffer = '128mb'
+  persistencePollingInterval = '100ms'
+
+[elasticsearch]
+  hosts = ['localhost']
+  username = 'elastic'
+
+  # Path to a separate TOML file with a single 'password' key.
+  # The base for a relative path is the connector installation directory.
+  pathToPassword = 'secrets/elasticsearch-password.toml'
+
+  # Optionally use SSL/TLS to encrypt the connection between Elasticsearch and
+  # the connector. Requires the [truststore] section to be configured. See also:
+  # https://www.elastic.co/guide/en/elasticsearch/reference/current/configuring-tls.html
+  secureConnection = false
+
+# If connecting directly to an Amazon Elasticsearch Service, specify the AWS region.
+# AWS credentials are obtained from the Default Credential Provider Chain.
+# https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/credentials.html
+[elasticsearch.aws]
+  region = ''
+
+[elasticsearch.bulkRequestLimits]
+  bytes = '10mb'
+  actions = 1000
+  timeout = '1m'
+  concurrentRequests = 2
+
+[elasticsearch.docStructure]
+  # The Elasticsearch document may optionally contain Couchbase metadata
+  # (cas, revision, expiry, etc). If present, this will be a top-level field
+  # of the Elasticsearch document. If you have configured the connector
+  # to put document content at the top level, choose a field name that will
+  # not conflict with any document fields. To omit the metadata field,
+  # use an empty string.
+  metadataFieldName = 'meta'
+
+  # false means the ES document root will have a 'doc' field whose value is
+  # the Couchbase document.
+  # true means the ES document will be identical to the Couchbase document,
+  # with the possible addition of the metadata field.
+  documentContentAtTopLevel = false
+
+  # false means ignore Couchbase counter documents.
+  # true means replicate them as Object nodes like {"value":<counter>}
+  wrapCounters = false
+
+# The values in this section may be overridden by specific type definitions.
+[elasticsearch.typeDefaults]
+  # Write matching documents to this index.
+  # Empty string means "no default".
+  index = ''
+
+  # If true, the 'prefix' and 'regex' rules operate on the qualified key.
+  # A qualified key includes the Couchbase document's parent scope and
+  # collection, for example: "scope.collection.documentId".
+  # If false, 'prefix' and 'regex' rules operate on the unqualified key,
+  # which is simply the Couchbase document ID.
+  matchOnQualifiedKey = false
+
+  # Send matching documents though this pipeline.
+  # Empty string means "no pipeline".
+  pipeline = ''
+
+  # Assign this type to matching documents.
+  # For ES 5.x remove leading underscore!
+  typeName = '_doc'
+
+  # If true, ignore matching documents entirely (implies 'ignoreDeletes').
+  ignore = false
+
+  # If true, never delete matching documents from Elasticsearch.
+  ignoreDeletes = false
+
+# Sample document type definitions for the travel-sample bucket.
+# Replace these to match your own data model.
+#
+# At a minimum, each type must specify a 'regex' (Java regular expression)
+# or 'prefix' property. The type config matches any Couchbase document
+# whose IDs matches the regex or prefix.
+#
+# The order of type definitions is significant. If a document ID matches
+# more than one type, the assigned type will be the one that occurs first
+# in this configuration. If none match, the document will not be indexed.
+[[elasticsearch.type]]
+  prefix = '_sync:' # Couchbase Sync Gateway metadata
+  ignore = true
+
+[[elasticsearch.type]]
+  prefix = 'stu_'
+  index = 'students'
+  pipeline = ''
+
+[[elasticsearch.type]]
+  # Index can be inferred from document ID by including a capturing group
+  # named "index". This example matches IDs that start with one or more
+  # characters followed by "::". It directs "user::alice" to index "user",
+  # and "foo::bar::123" to index "foo".
+  regex = '(?<index>.+?)::.*'
+
+# In the travel-sample data model, a route is the child of an airline.
+# Each route document has an `airlineid` field that holds the parent ID.
+# The following type definition ensures each route document is stored
+# in the same index and shard as its parent airline document.
+# For more information about Elasticsearch parent/join fields, see
+# https://www.elastic.co/guide/en/elasticsearch/reference/current/parent-join.html
+
+
+# If your couchbase documents are organized into collections, the destination
+# index can be derived from a document's parent scope and/or collection.
+# This example rule matches any document and derives the index name
+# from the scope and collection that contain the document.
+# For example, a document with the qualified key "scope.collection.foo"
+# is written to index "scope.collection".
+[[elasticsearch.type]]
+  matchOnQualifiedKey = true
+  regex = '(?<index>[^.]+.[^.]+).*'
+
+# This rule is similar to the previous one, but it ignores the scope component
+# and derives the index name from just the collection name.
+# For example, a document with the qualified key "scope.collection.foo"
+# is written to index "collection".
+[[elasticsearch.type]]
+  matchOnQualifiedKey = true
+  regex = '[^.]+.(?<index>[^.]+).*'
+
+# This is a "catch-all" rule that matches any document.
+[[elasticsearch.type]]
+  prefix = '' # Empty prefix matches any document ID.
+  index = 'etc'
+
+# When Elasticsearch rejects a document (usually due to a type mapping error)
+# a rejection log entry document is written to Elasticsearch. The log entry's
+# document ID is the ID of the rejected Couchbase document. The log entry's
+# content has the following fields:
+#   "index"  - (string) name of the index the connector tried to write to
+#   "type"   - (string) document type name used for the write attempt
+#   "action" - (string) failed action type ("INDEX" or "DELETE")
+#   "error"  - (string) error message received from Elasticsearch
+[elasticsearch.rejectionLog]
+  index = 'cbes-rejects'
+  typeName = '_doc' # For ES 5.x remove leading underscore!

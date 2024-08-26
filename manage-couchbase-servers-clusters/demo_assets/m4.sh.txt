@@ -1,0 +1,428 @@
+####################################
+############ Exporting and Importing Documents using cbtransfer
+####################################
+
+## Create two different clusters for this demo
+
+## Create a student-schools bucket on the local machine
+## Create a bucket called student-schools-remote on the remote machine - make it flushable
+## Create a primary index for both
+# Click on "Couchbase Web Console > Query" 
+
+CREATE PRIMARY INDEX ON `student-schools`;
+
+
+INSERT INTO `student-schools` (KEY, VALUE)
+VALUES ("1", {
+              "id": 1,
+              "type" : "student",
+              "firstName": "Lori",
+              "lastName": "Gross",
+              "gender": "Female",
+              "emailId" : "lori@hotmail.com",
+              "degree" : "BTech",
+              "gpa" : 2.8,
+              "recruited" : false,
+              "schoolName" : "Curtin University"  
+            }
+       ),
+VALUES ("2", {
+              "id": 2,
+              "type" : "student",
+              "firstName": "Edwin",
+              "lastName": "Brown",
+              "gender": "Male",
+              "emailId" : "edwin@hotmail.com",
+              "degree" : "MS",
+              "gpa" : 3.9,
+              "recruited" : true,
+              "company" : "itgurukul",
+              "schoolName" : "Harvard University"
+            }
+       ),
+
+VALUES ("3", {
+              "id": 3,
+              "type" : "student",
+              "firstName": "Jon",
+              "lastName": "Scott",
+              "gender": "Male",
+              "emailId" : "jones@hotmail.com",
+              "degree" : "MS",
+              "gpa" : 3.5,
+              "recruited" : false,
+              "schoolName" : "Curtin University"
+            }
+       ),
+
+VALUES ("4", {
+              "id": 4,
+              "type" : "student",
+              "firstName": "Aubrey",
+              "lastName": "Taylor",
+              "gender": "Female",
+              "emailId" : "aubrey@hotmail.com",
+              "degree" : "BE",
+              "gpa" : 3.8,
+              "recruited" : true,
+              "company" : "itgurukul",
+              "schoolName" : "Stanford University"
+            }
+       ),
+
+VALUES ("5", {
+              "id": 5,
+              "type" : "student",
+              "firstName": "Ronan",
+              "lastName": "Martin",
+              "gender": "Male",
+              "emailId" : "ronan@hotmail.com",
+              "degree" : "BE",
+              "gpa" : 2.9,
+              "recruited" : true,
+              "company" : "Facebook",
+              "schoolName" : "Royal Melbourne Institute of Technology"
+            }
+       )
+RETURNING meta().id, firstName, lastName, schoolName;
+
+
+
+## Exporting to and importing from CSV using cbtransfer
+
+## Exporting
+/opt/couchbase/bin/cbtransfer \
+http://127.0.0.1:8091 \
+-u admin -p bvsrao \
+csv:./student_data.csv \
+-b student-schools
+
+less student_data_student-schools_127.0.0.1%3A8091.csv
+
+mv student_data_student-schools_127.0.0.1%3A8091.csv \
+student_data.csv
+
+## Copy this to the remote machine
+scp student_data.csv clouduser@remotemachine:
+
+## Importing
+/opt/couchbase/bin/cbtransfer \
+student_data.csv \
+http://127.0.0.1:8091  \
+-u admin -p bvsrao \
+-B student-schools-remote
+
+## Head to the buckets page on the remoteCluster
+## Confirm from the documents view that the same data has been loaded
+
+## Back from the buckets page, flush the bucket
+
+
+## Clear the contents of the backup bucket
+
+
+## From the localCluster machine, stop Couchbase
+sudo systemctl stop couchbase-server
+
+## Transfer to the remoteCluster
+sudo /opt/couchbase/bin/cbtransfer \
+couchstore-files:///opt/couchbase/var/lib/couchbase/data \
+http://10.0.0.5:8091 \
+-u admin -p bvsrao \
+-b student-schools \
+-B student-schools-remote
+
+
+## Re-start the localCluster
+sudo systemctl start couchbase-server
+
+## Transfer between clusters
+## From a cluster on the cloud to a local one
+/opt/couchbase/bin/cbtransfer \
+http://localmachine:8091 \
+http://remotemachine:8091 \
+-u admin -p bvsrao \
+-b student-schools \
+-U admin -P bvsrao \
+-B student-schools-remote
+
+
+
+
+
+#############################################
+################## Managing Data Backups using cbbackupmgr
+#############################################
+
+## In the localmachine, load the beer-sample and gamesim-sample buckets
+
+## From the home directory of the localmachine shell
+## Create an archive directory where the cluster data will be backed up
+cd ~
+mkdir -p data/backup
+
+## View the backups in the /home/clouduser/data/backup directory
+## This will not work as it's not a backup directory yet
+/opt/couchbase/bin/cbbackupmgr list \
+--archive /home/clouduser/data/backup
+
+/opt/couchbase/bin/cbbackupmgr config \
+--archive /home/clouduser/data/backup \
+--repo myClusterBackup
+
+/opt/couchbase/bin/cbbackupmgr list \
+--archive /home/clouduser/data/backup
+
+/opt/couchbase/bin/cbbackupmgr backup \
+--archive /home/clouduser/data/backup \
+--repo myClusterBackup \
+ -c couchbase://localmachine \
+ -u admin -p bvsrao
+
+/opt/couchbase/bin/cbbackupmgr list \
+--archive /home/clouduser/data/backup
+
+## Check the size of the backup directory
+
+ls -l data/backup
+
+cd data/backup/myClusterBackup/
+
+ls -l
+
+du -h --max-depth=1
+
+## Check out the backup properties
+less backup-meta.json
+
+
+## Add data into the bucket
+
+INSERT INTO `student-schools` (KEY, VALUE)
+VALUES ("6", {
+			  "id": 6,
+			  "type" : "student",
+			  "firstName": "Angela",
+			  "lastName": "Perez",
+			  "gender": "Female",
+			  "emailId" : "angela@hotmail.com",
+			  "degree" : "MS",
+			  "gpa" : 2.5,
+			  "recruited" : true,
+			  "company" : "Google",
+			  "schoolName" : "Stanford University"
+			}
+	   ),
+VALUES ("7", {
+			  "id": 7,
+			  "type" : "student",
+			  "firstName": "Kevin",
+			  "lastName": "Scott",
+			  "gender": "Male",
+			  "emailId" : "kevin@yahoo.com",
+			  "degree" : "MBA",
+			  "gpa" : 2,
+			  "recruited" : true,
+			  "company" : "Facebook",
+			  "schoolName" : "Technische University Berlin" 
+			}
+	   ),
+VALUES ("8", {
+			  "id": 8,
+			  "type" : "student",
+			  "firstName": "Leona",
+			  "lastName": "Griffin",
+			  "gender": "Female",
+			  "emailId" : "leona@hotmail.com",
+			  "degree" : "BSc",
+			  "gpa" : 3,
+			  "recruited" : true,
+			  "company" : "Amazon",
+			  "schoolName" : "Technische University Berlin"
+			}
+	   )
+RETURNING meta().id, firstName, lastName, schoolName;
+
+## Perform another backup
+
+cd ~
+
+/opt/couchbase/bin/cbbackupmgr backup \
+--archive /home/clouduser/data/backup \
+--repo myClusterBackup \
+ -c couchbase://localmachine \
+ -u admin -p bvsrao
+
+ls -ltr /home/clouduser/data/backup/myClusterBackup
+
+/opt/couchbase/bin/cbbackupmgr list \
+--archive /home/clouduser/data/backup
+
+## Check the size of the backup directories
+du -h --max-depth=1 \
+/home/clouduser/data/backup/myClusterBackup
+
+## Modify and delete some documents
+UPDATE `student-schools`
+SET gpa = 3.1
+WHERE id = 5;
+
+UPDATE `student-schools`
+SET recruited = true
+WHERE id = 3;
+
+DELETE 
+FROM `student-schools`
+WHERE id IN [2, 4];
+
+
+## Perform a 3rd backup
+/opt/couchbase/bin/cbbackupmgr backup \
+--archive /home/clouduser/data/backup \
+--repo myClusterBackup \
+ -c couchbase://localmachine \
+ -u admin -p bvsrao
+
+ls -ltr /home/clouduser/data/backup/myClusterBackup
+
+## Check the size of the backup directory
+du -h --max-depth=1 \
+/home/clouduser/data/backup/myClusterBackup/
+
+/opt/couchbase/bin/cbbackupmgr list \
+--archive /home/clouduser/data/backup
+
+
+#### Compacting backups
+## Try compacting each of the backup directories
+## This may not save any space in this example, but it helps to do this after each backup
+## The compact command can be run after a backup 
+## to reclaim any fragmented disk space in the backup data files
+
+ls -ltr /home/clouduser/data/backup/myClusterBackup
+
+/opt/couchbase/bin/cbbackupmgr compact \
+--archive /home/clouduser/data/backup \
+--repo myClusterBackup \
+--backup 2020-01-26T12_46_47.10772743Z
+
+## Repeat above step for all backups
+
+#### Merging backups
+
+## Perform one more update and create a backup
+UPDATE `student-schools`
+SET gpa = 3.2
+WHERE id = 5;
+
+/opt/couchbase/bin/cbbackupmgr backup \
+--archive /home/clouduser/data/backup \
+--repo myClusterBackup \
+ -c couchbase://localmachine \
+ -u admin -p bvsrao
+
+ls -ltr -ltr /home/clouduser/data/backup/myClusterBackup
+
+ ## Compact the newly created backup
+/opt/couchbase/bin/cbbackupmgr compact \
+--archive /home/clouduser/data/backup \
+--repo myClusterBackup \
+--backup 2020-01-26T12_46_47.10772743Z
+
+## From the backup directory, check the size of each backup
+du -h --max-depth=1 \
+/home/clouduser/data/backup/myClusterBackup/
+
+## Sort folders in chronological order
+ls -ltr
+
+## Merge the 1st to n-1th backup into one directory
+## This can take a while (30 mins or so?)
+/opt/couchbase/bin/cbbackupmgr merge \
+--archive /home/clouduser/data/backup \
+--repo myClusterBackup \
+--start 2020-06-12T04_03_18.215122702Z \
+--end 2020-06-12T04_11_04.457993631Z
+
+ls -ltr /home/clouduser/data/backup/myClusterBackup/
+
+du -h --max-depth=1 \
+/home/clouduser/data/backup/myClusterBackup/
+
+
+/opt/couchbase/bin/cbbackupmgr list \
+--archive /home/clouduser/data/backup
+
+
+/opt/couchbase/bin/cbbackupmgr list \
+--archive /home/clouduser/data/backup \
+--repo myClusterBackup \
+--backup 2020-06-12T04_15_17.994222935Z
+
+
+/opt/couchbase/bin/cbbackupmgr config \
+--archive /home/clouduser/data/backup \
+--repo studentBackup \
+--include-buckets student-schools \
+--disable-views \
+--disable-ft-indexes \
+--disable-analytics
+
+
+/opt/couchbase/bin/cbbackupmgr backup \
+--archive /home/clouduser/data/backup \
+--repo studentBackup \
+ -c couchbase://localmachine \
+ -u admin -p bvsrao
+
+ ls -ltr /home/clouduser/data/backup/
+
+/opt/couchbase/bin/cbbackupmgr list \
+--archive /home/clouduser/data/backup
+
+/opt/couchbase/bin/cbbackupmgr compact \
+--archive /home/clouduser/data/backup \
+--repo studentBackup \
+--backup 2020-01-27T08_13_34.105843776Z
+
+
+#### Restoring data 
+
+## First, let's delete some data
+DELETE 
+FROM `student-schools`
+WHERE id IN [6, 7, 8];
+
+SELECT *
+FROM `student-schools`;
+
+## This will not restore the data, 
+## as Couchbase has recorded activity after the backup (i.e. the delete)
+## The default conflict resolution mechanism prevents newer actions from being 
+## overwritten by older restore data
+/opt/couchbase/bin/cbbackupmgr restore \
+--archive /home/clouduser/data/backup \
+--repo studentBackup \
+-c couchbase://localmachine \
+-u admin -p bvsrao
+
+## We can override the default conflict resolution mechanism by forcing updates
+/opt/couchbase/bin/cbbackupmgr restore \
+--archive /home/clouduser/data/backup \
+--repo studentBackup \
+ -c couchbase://localmachine \
+ -u admin -p bvsrao \
+ --force-updates
+
+## Check the contents of the student-schools table
+SELECT *
+FROM `student-schools`;
+
+## From the UI flush the contents of the bucket to simulate an accidental purge
+## Restore the contents
+/opt/couchbase/bin/cbbackupmgr restore \
+--archive /home/clouduser/data/backup \
+--repo studentBackup \
+ -c couchbase://localmachine \
+ -u admin -p bvsrao
+
