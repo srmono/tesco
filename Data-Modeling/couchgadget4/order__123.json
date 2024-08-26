@@ -1,0 +1,44 @@
+{
+  	"type": "order",
+    "id": 123,
+	"customer": {
+		"name": "BipCo",
+		"id": "bipco::2345"
+	},
+	"addresses": [
+		{
+			"type": "address::shipping",
+			"address": "5432 One Ave.",
+			"city": "Seattle",
+			"postcode": 98102,
+			"updated": "2015-11-13T09:11:47"
+		},
+		{
+			"type": "address::billing",
+			"id": "address::billing::bipco::2345"
+		}
+	],
+    "items": [
+      {
+        "id": 774477,
+        "name": "Widget",
+        "quantity": 3,
+        "warranty": "90 days"
+      },
+      {
+        "id": 332299,
+        "name": "Gizmo",
+        "quantity": 1,
+        "warranty": null,
+        "discount": null
+      },
+      {
+        "id": 115588,
+        "name": "Gadget",
+        "quantity": 7,
+        "discount": 0.20
+      }
+    ],
+    "paytype": "paytype::paypal::bipco::2345",
+    "updated": "2015-11-13T09:11:47"
+}

@@ -1,0 +1,48 @@
+{
+  "order": {
+    "id": 123,
+	"customer": {
+		"name": "BipCo",
+		"id": 2345,
+		"street": "1234 Five St.",
+		"city": "Portland",
+		"state": "OR",
+		"country": "US",
+		"postcode": 97203,
+		"email": "us@usbipco.us",
+		"twitter": "#usbipco"
+	},
+    "items": [
+      {
+        "id": 774477,
+        "name": "Widget",
+        "description": "Fit for all uses.",
+        "warranty": "90 days",
+        "quantity": 3,
+        "price": 29.95
+      },
+      {
+        "id": 332299,
+        "name": "Gizmo",
+        "description": "Perfect for that.",
+        "quantity": 1,
+        "price": 7.95
+      },
+      {
+        "id": 115588,
+        "name": "Gadget",
+        "description": "Just what I need.",
+        "quantity": 7,
+        "price": 115.00,
+        "discount": 0.20
+      }
+    ],
+	"paytype": {
+		"name": "PayPal",
+		"credential": "77997ea4-13f7-4241-a2c8-b5be41041ce6"
+	}
+  }
+}
+
+
+

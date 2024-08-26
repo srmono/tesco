@@ -1,0 +1,7 @@
+{
+	"type": "paytype",
+    "name": "Visa",
+    "credential": "xxxx-xxxx-xxxx-1234",
+    "expiry": "0918",
+    "code": 999
+}

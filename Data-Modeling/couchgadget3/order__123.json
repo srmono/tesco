@@ -1,0 +1,22 @@
+{
+  	"type": "order",
+    "id": 123,
+	"customer_id": "customer::bipco::2345",
+	"shipping_address": "address::shipping::bipco::2345",
+    "items": [
+      {
+        "id": 774477,
+        "quantity": 3
+      },
+      {
+        "id": 332299,
+        "quantity": 1
+      },
+      {
+        "id": 115588,
+        "quantity": 7,
+        "discount": 0.20
+      }
+    ],
+    "paytype": "paytype::paypal::bipco::2345"
+}

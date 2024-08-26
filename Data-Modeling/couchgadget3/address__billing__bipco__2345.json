@@ -1,0 +1,9 @@
+{
+	"type": "address",
+	"purpose": "billing",
+	"street": "1234 Five St.",
+	"city": "Portland",
+	"state": "OR",
+	"country": "US",
+	"postcode": 97203
+}

@@ -1,0 +1,46 @@
+{
+  	"type": "order",
+    "id": 123,
+	"customer": {
+		"name": "BipCo",
+		"id": "bipco::2345"
+	},
+	"shipping_address": {
+		"type": "address",
+		"address": "5432 One Ave.",
+		"city": "Seattle",
+		"postcode": "98102",
+		"updated": "2015-11-13T09:11:47"
+	},
+	"billing_address": "address::billing::bipco::2345",
+    "items": [
+      {
+        "id": 774477,
+        "name": "Widget",
+        "quantity": 3,
+        "warranty": "90 days"
+      },
+      {
+        "id": 332299,
+        "name": "Gizmo",
+        "quantity": 1,
+        "warranty": null,
+        "discount": null
+      },
+      {
+        "id": 115588,
+        "name": "Gadget",
+        "quantity": 7,
+        "discount": 0.20
+      }
+    ],
+    "paytype": {
+		"id": "paytype::visa::bipco::2345",
+	    "name": "Visa",
+	    "credential": "xxxx-xxxx-xxxx-1234",
+	    "expiry": "0918",
+	    "code": 999,
+	    "updated": "2015-11-13T09:11:47"
+	},
+    "updated": "2015-11-13T09:11:47"
+}

@@ -1,0 +1,9 @@
+{
+	"type": "address",
+	"purpose": "shipping",
+	"street": "5432 One Ave.",
+	"city": "Seattle",
+	"state": "WA",
+	"country": "US",
+	"postcode": 98102
+}

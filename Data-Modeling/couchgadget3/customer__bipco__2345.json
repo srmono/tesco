@@ -1,0 +1,18 @@
+{
+	"type": "customer",
+	"id": 2345,
+	"name": "BipCo",
+	"addresses": [
+		"address::billing::bipco::2345",
+		"address::shipping::bipco::2345"
+	],
+	"contacts": [
+		"contact::email::bipco::2345",
+		"contact::bipco::2345"
+	],
+	"paytypes": [
+		"paytype::paypal::bipco::2345",
+		"paytype::visa::bipco::2345",
+		"paytype::terms::bipco::2345"
+	]
+}

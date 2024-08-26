@@ -1,0 +1,29 @@
+{
+	"type": "customer",
+	"id": 2345,
+	"name": "BipCo",
+	"addresses": [
+		"address::billing::bipco::2345",
+		"address::shipping::bipco::2345"
+	],
+	"contacts": [
+		{
+			"type": "service",
+			"name": "twitter",
+			"handle": "@acmecorp",
+			"updated": "2015-11-13T09:11:47"
+		},
+		{
+			"type": "service",
+			"name": "email",
+			"address": "sales@acmecorpus.com",
+			"updated": "2015-11-13T09:11:48"
+		}
+	],
+	"paytypes": [
+		"paytype::paypal::bipco::2345",
+		"paytype::visa::bipco::2345",
+		"paytype::terms::bipco::2345"
+	],
+	"updated": "2015-11-13T09:11:49"
+}
